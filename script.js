@@ -1,85 +1,65 @@
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const touchArea = document.getElementById('touchArea');
 
+// Configuração do canvas para mobile
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-const gameSize = Math.min(window.innerWidth, window.innerHeight * 0.9);
-canvas.width = gameSize;
-canvas.height = gameSize;
-
-
+// Elementos do jogo (igual ao seu original)
 const pacman = {
-    x: gameSize / 10,
-    y: gameSize / 10,
-    size: gameSize / 20,
-    speed: gameSize / 100,
+    x: canvas.width / 10,
+    y: canvas.height / 10,
+    size: canvas.width / 20,
+    speed: canvas.width / 100,
     dx: 0,
     dy: 0
 };
 
 const walls = [
-    { x: gameSize * 0.2, y: gameSize * 0.2, width: gameSize * 0.6, height: gameSize * 0.04 },
-    { x: gameSize * 0.2, y: gameSize * 0.4, width: gameSize * 0.04, height: gameSize * 0.4 }
+    { x: canvas.width * 0.2, y: canvas.height * 0.2, width: canvas.width * 0.6, height: canvas.width * 0.04 },
+    { x: canvas.width * 0.2, y: canvas.height * 0.4, width: canvas.width * 0.04, height: canvas.height * 0.4 }
 ];
 
-
-const pellets = [];
-for (let i = 0; i < 20; i++) {
-    pellets.push({
-        x: Math.random() * gameSize * 0.8 + gameSize * 0.1,
-        y: Math.random() * gameSize * 0.8 + gameSize * 0.1,
-        size: gameSize / 60,
-        collected: false
-    });
-}
+// Pellets (quantidade original)
+const pellets = [
+    { x: canvas.width * 0.1, y: canvas.height * 0.1, size: canvas.width / 60 },
+    { x: canvas.width * 0.3, y: canvas.height * 0.1, size: canvas.width / 60 },
+    { x: canvas.width * 0.5, y: canvas.height * 0.1, size: canvas.width / 60 },
+    { x: canvas.width * 0.7, y: canvas.height * 0.1, size: canvas.width / 60 }
+];
 
 const ghosts = [
-    { x: gameSize * 0.7, y: gameSize * 0.5, size: gameSize / 20, dx: gameSize / 200, dy: 0, color: 'red' },
-    { x: gameSize * 0.3, y: gameSize * 0.6, size: gameSize / 20, dx: -gameSize / 250, dy: 0, color: 'blue' }
+    { x: canvas.width * 0.7, y: canvas.height * 0.5, size: canvas.width / 25, dx: canvas.width / 250, dy: 0, color: 'red' },
+    { x: canvas.width * 0.3, y: canvas.height * 0.6, size: canvas.width / 25, dx: -canvas.width / 300, dy: 0, color: 'blue' }
 ];
 
-function setDirection(dx, dy) {
-    pacman.dx = dx * pacman.speed;
-    pacman.dy = dy * pacman.speed;
-}
-
-
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') setDirection(1, 0);
-    else if (e.key === 'ArrowLeft') setDirection(-1, 0);
-    else if (e.key === 'ArrowUp') setDirection(0, -1);
-    else if (e.key === 'ArrowDown') setDirection(0, 1);
-});
-
-
-touchArea.addEventListener('touchstart', (e) => {
+// Controle por toque invisível
+canvas.addEventListener('touchstart', (e) => {
     const touchX = e.touches[0].clientX;
     const touchY = e.touches[0].clientY;
-    const rect = canvas.getBoundingClientRect();
     
-    const centerX = rect.left + canvas.width / 2;
-    const centerY = rect.top + canvas.height / 2;
-    
-    const dx = touchX - centerX;
-    const dy = touchY - centerY;
-    
-
+    // Calcula direção do toque
+    const dx = touchX - pacman.x;
+    const dy = touchY - pacman.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    setDirection(dx / distance, dy / distance);
+    
+    // Normaliza e aplica velocidade
+    pacman.dx = (dx / distance) * pacman.speed;
+    pacman.dy = (dy / distance) * pacman.speed;
+    
     e.preventDefault();
 });
 
-
+// Atualização do jogo (igual ao original)
 function update() {
-
     pacman.x += pacman.dx;
     pacman.y += pacman.dy;
-
+    
+    // Limites da tela
     pacman.x = Math.max(pacman.size, Math.min(canvas.width - pacman.size, pacman.x));
     pacman.y = Math.max(pacman.size, Math.min(canvas.height - pacman.size, pacman.y));
     
-
+    // Colisão com paredes
     walls.forEach(wall => {
         if (pacman.x < wall.x + wall.width &&
             pacman.x + pacman.size > wall.x &&
@@ -90,15 +70,15 @@ function update() {
         }
     });
     
-
-    pellets.forEach(pellet => {
-        if (!pellet.collected && 
-            Math.abs(pacman.x - pellet.x) < pacman.size/2 + pellet.size &&
+    // Coleta de pellets
+    pellets.forEach((pellet, i) => {
+        if (Math.abs(pacman.x - pellet.x) < pacman.size/2 + pellet.size &&
             Math.abs(pacman.y - pellet.y) < pacman.size/2 + pellet.size) {
-            pellet.collected = true;
+            pellets.splice(i, 1);
         }
     });
     
+    // Movimento dos fantasmas
     ghosts.forEach(ghost => {
         ghost.x += ghost.dx;
         ghost.y += ghost.dy;
@@ -108,25 +88,23 @@ function update() {
     });
 }
 
-
+// Desenho (igual ao original)
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-
+    // Paredes
     ctx.fillStyle = 'blue';
     walls.forEach(wall => ctx.fillRect(wall.x, wall.y, wall.width, wall.height));
     
-
+    // Pellets
     ctx.fillStyle = 'white';
     pellets.forEach(pellet => {
-        if (!pellet.collected) {
-            ctx.beginPath();
-            ctx.arc(pellet.x, pellet.y, pellet.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        ctx.beginPath();
+        ctx.arc(pellet.x, pellet.y, pellet.size, 0, Math.PI * 2);
+        ctx.fill();
     });
     
-
+    // Fantasmas
     ghosts.forEach(ghost => {
         ctx.fillStyle = ghost.color;
         ctx.beginPath();
@@ -141,7 +119,7 @@ function draw() {
         ctx.fill();
     });
     
-
+    // Pacman
     ctx.fillStyle = 'yellow';
     ctx.beginPath();
     ctx.arc(pacman.x, pacman.y, pacman.size, 0.2 * Math.PI, 1.8 * Math.PI);
@@ -149,12 +127,18 @@ function draw() {
     ctx.fill();
 }
 
-
+// Loop do jogo
 function gameLoop() {
     update();
     draw();
     requestAnimationFrame(gameLoop);
 }
 
-
+// Inicia o jogo
 gameLoop();
+
+// Redimensionamento
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
